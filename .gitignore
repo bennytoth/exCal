@@ -1,0 +1,9 @@
+# Ignoriere den Datenbank-Ordner von n8n
+n8n_data/
+local_files/
+
+# Ignoriere Environment Variablen (Passwörter)
+.env
+
+# Windows Systemdateien
+Thumbs.db
