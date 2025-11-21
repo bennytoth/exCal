@@ -3,13 +3,14 @@
   "nodes": [
     {
       "parameters": {
-        "path": "f0f7fe1e-b97e-4455-8db0-7202630b90f9",
+        "httpMethod": "POST",
+        "path": "exCalAI",
         "options": {
           "responseHeaders": {
             "entries": [
               {
-                "name": "Entry Suggestion",
-                "value": "Jason"
+                "name": "Content-Type",
+                "value": "application/json"
               }
             ]
           }
@@ -29,16 +30,30 @@
       "parameters": {
         "modelId": {
           "__rl": true,
+          "value": "gpt-4o-mini",
           "mode": "list",
-          "value": ""
+          "cachedResultName": "GPT-4O-MINI"
         },
         "responses": {
           "values": [
-            {}
+            {
+              "role": "system",
+              "content": "=Du bist ein Assistent, der Termine aus Texten extrahiert. Deine Aufgabe ist den erhlatenen Inhalt zu analysieren und dann einen Sinnvollen Kallender eintrag dasraus zu erstellen. \nDer Text ist oft kein optimal zusammengesetzter Input zum erstellen eines Kalender eintrages, weshalb du besonderst aufpassen musst alle Hinweise zur einordnung korrekt zu deuten.\nHeute ist: {{ $now.format('YYYY-MM-DD') }} (Nutze das als Referenz für \"morgen\", \"nächste Woche\", etc.).\n\nExtrahiere folgende Daten:\n1. summary (Titel des Events)\n2. location (Ort, falls vorhanden, sonst leer)\n3. description (kurze Zusammenfassung des kontextes)\n4. start (ISO 8601 Format: YYYY-MM-DDTHH:mm:ss)\n5. end (ISO 8601 Format: YYYY-MM-DDTHH:mm:ss). Wenn keine Dauer angegeben ist, nimm 1 Stunde an. Wenn keine Uhrzeit angegeben ist, nimm ein ganz Tagiges event an.\n\nAntworte AUSSCHLIESSLICH mit diesem JSON Objekt."
+            },
+            {
+              "content": "={{ $json.body.selectedText }}"
+            }
           ]
         },
+        "simplify": false,
         "builtInTools": {},
-        "options": {}
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2,
@@ -47,7 +62,13 @@
         0
       ],
       "id": "cd392996-dd98-4a6c-a14d-622a26af41d6",
-      "name": "Message a model"
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ya7qV5E2FEBrzp39",
+          "name": "OpenAi account"
+        }
+      }
     },
     {
       "parameters": {
@@ -115,13 +136,7 @@
     },
     "Code in JavaScript": {
       "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     }
   },
@@ -129,7 +144,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "63f00856-f9b4-48e3-a471-67ebdfa92eca",
+  "versionId": "ac0e9470-49c4-4b40-8969-cc01aefe0451",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "e10c492a977fff9b9dd0f8ec7d9df4191ac91c993b4ad052fd42f4d619eb6267"
