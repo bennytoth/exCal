@@ -1,0 +1,1123 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        1008
+      ],
+      "id": "a9281fda-577e-4149-ad31-cd21f78c36e4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -944,
+        1344
+      ],
+      "id": "f8c5f185-a7fc-4094-b9c5-10283e7f31d9",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "39cqRGXZeRzQxCqq",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "11p5ZKyOrzgq4uXbLZI41-YS3JrGj1wxh",
+          "mode": "list",
+          "cachedResultName": "Screenshot 2025-10-12 005933.jpg",
+          "cachedResultUrl": "https://drive.google.com/file/d/11p5ZKyOrzgq4uXbLZI41-YS3JrGj1wxh/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1792,
+        720
+      ],
+      "id": "8de4e78a-5172-4c7a-8dd6-a286c97ff9ae",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fUjGTzJdN4E5Vps2",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "chatgpt-4o-latest"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1152,
+        896
+      ],
+      "id": "d40e3341-6b39-4e2f-9f07-89e1045ecdeb",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "39cqRGXZeRzQxCqq",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analysiere diese Grafik und gib alle Termine als JSON zurück.\n",
+        "options": {
+          "systemMessage": "Du bist ein präzises Vision-System. Analysiere ein Bild (Zeitplan, Gantt, Roadmap, Kalender, Aushang, Folie) und extrahiere alle relevanten Ereignisse mit Kontext. Das Bild kann Legenden, Farben, Wochen (Week/KW), Pfeile, Balken und Kästen enthalten. Verstehe Layout, Farben, Labels, Pfeilrichtungen und Positionsbezüge, nicht nur OCR-Text. Texte können in jeder Sprache vorkommen.\n\nZiele\n\nErkenne Einzeltermine, Serien, Zeiträume und Meilensteine.\n\nDeute Kontext: findet statt, entfällt, verschoben, unklar. Erkenne implizite Hinweise (z. B. „Public Holiday“, „No class“, Farblegende).\n\nLiefere kalenderfähige, normalisierte Daten.\n\nEingabehinweise (vom Aufrufer gesetzt, wenn verfügbar)\n\nbase_year: Jahr für Datumsableitung (z. B. 2025).\n\nsemester_start: ISO-Datum des Startmontags zur KW-Ableitung (z. B. 2025-09-29).\n\nkw_locale: „de-DE“ oder „ISO-8601“; wenn unklar → ISO-8601.\n\nOptional: vorab extrahierter OCR-Text.\n\nWenn nur KW/Week N angegeben ist: Bestimme Datum(e) über semester_start und kw_locale. Wenn nur Wochentage stehen: nutze das nächste Vorkommen ab heutigem Datum. Wenn Zeitspanne (Balken) über mehrere Wochen: setze datum_start und datum_ende entsprechend.\n\nFelder je erkanntem Ereignis\n\nGib eine Liste von Objekten zurück, eins pro Termin/Meilenstein. Fülle Felder robust; wenn nicht mit ≥95 % Sicherheit bestimmbar, setze \"not found\" oder false.\n\ntitle – kurzer Titel aus Bildkontext.\n\ndatum_start – YYYY-MM-DD oder null.\n\ndatum_ende – YYYY-MM-DD oder null (bei Zeiträumen sonst = datum_start).\n\nzeit_start – HH:MM oder null.\n\nzeit_ende – HH:MM oder null.\n\nart – z. B. Lecture/Vorlesung, Lab, Meeting, Workshop, Presentation, Holiday, Milestone, Sonstiges.\n\nstatus – findet statt | entfällt | verschoben | unklar.\n\nraum – Raum/Ort oder \"not found\".\n\nfach – Fach/Thema oder \"not found\".\n\ndozent – Person/Verantwortliche/r oder \"not found\".\n\nonline – true/false.\n\nserie – \"ja\" wenn explizit regelmäßig (z. B. „every Monday“, Farbbalken über mehrere Wochen mit gleichem Label), sonst \"nein\".\n\nkurzbeschreibung – wenige Stichworte, die deine Entscheidung stützen (z. B. „Week 3, KW42, Lecture & Lab, green = optional“).\n\nconfidence – Zahl 0..1 für deine Gesamtsicherheit.\n\ntextausschnitt – die relevante Originalphrase/Label(s) aus dem Bild (kurz).\n\nRegeln und Interpretation\n\nNutze Legenden/Farben: z. B. „red = Presence Event“, „green = optional“. Übertrage das in art/status/online.\n\n„No class“, „keine Vorlesung“, „Public Holiday“ ⇒ status=\"entfällt\", art passend (z. B. Holiday).\n\n„Rescheduled“, „verschoben auf …“ ⇒ status=\"verschoben\" und nutze neues Datum/Zeit.\n\nBalken über Wochen ⇒ Zeitraum (datum_start/datum_ende). Punktuelle Marker (Diamant/Pin) ⇒ Einzeltermin.\n\nMehrere Einträge pro Woche (Lecture/Lab/Presentation) ⇒ getrennte Objekte.\n\nZeiten: akzeptiere 8–11:15, 10–12, 10:00–12:00, 9.45–11.15 usw.; normalisiere auf HH:MM.\n\nMehrsprachig interpretieren (de/en/fr/…); Ausgabe bleibt auf Deutsch für status/serie.\n\nWenn Annahmen nötig (KW-Mapping, Jahr): trage Ergebnis ein und erkläre kurz in kurzbeschreibung; senke confidence.\n\nAusgabeformat\n\nAntworte nur mit gültigem JSON-Array. Kein Fließtext, keine Erklärungen außerhalb des JSON.\n\nBeispielausgabe:\n[\n  {\n    \"title\": \"SWT – Lecture & Lab\",\n    \"datum_start\": \"2025-10-13\",\n    \"datum_ende\": \"2025-10-19\",\n    \"zeit_start\": \"00:00\",\n    \"zeit_ende\": null,\n    \"art\": \"Lecture & Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Week 3 (KW42), red/green labels, timeline bars\",\n    \"confidence\": 0.86,\n    \"textausschnitt\": \"Week 3 • KW42 • Lecture & Lab\"\n  },\n  {\n    \"title\": \"Presentation\",\n    \"datum_start\": \"2025-11-24\",\n    \"datum_ende\": \"2025-11-24\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Presentation\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Marker over Week 8\",\n    \"confidence\": 0.78,\n    \"textausschnitt\": \"Presentation • Week 8\"\n  }\n]\n\nWenn nichts Verwertbares erkennbar ist:\n[{ \"notice\": \"No valid events detected\", \"confidence\": 0.0 }]\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        640
+      ],
+      "id": "b6c66cbc-6698-4dd6-8541-9929f914a84f",
+      "name": "Picture Analyst"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Input: {{ $json.text }}\n",
+        "options": {
+          "systemMessage": "System-Rolle:\nDu bist ein präzises KI-System zur Erkennung und Interpretation von zeitbezogenen Informationen in beliebigen Texten oder Dokumentinhalten (z. B. aus E-Mails, PDFs, Webseiten, Aushängen oder Notizen).\n\nDein Ziel ist es, alle relevanten Termine oder Zeiträume zu erkennen, ihren Bedeutungskontext zu verstehen und die Ergebnisse in einem maschinenlesbaren JSON-Format zurückzugeben, das direkt für Kalender-Einträge (z. B. Google Calendar) verwendet werden kann.\n\nSprache, Schreibweise und Format können variieren – du musst jede Sprache und jedes Datums-/Zeitformat verstehen.\n\n🎯 Analyse-Ziele\n\nAlle Arten von Terminen erkennen – Einzeltermine, Serien, Zeiträume, wiederkehrende Ereignisse.\n\nKontext erfassen, z. B. ob ein Termin stattfindet, entfällt, verschoben oder unklar ist.\n\nZeiten und Daten normalisieren, sodass sie direkt in ISO-ähnlichen Formaten genutzt werden können.\n\nZusatzinformationen extrahieren, z. B. Raum, Fach, Dozent, Online-Status.\n\nUnsicherheiten bewerten und in confidence zwischen 0 und 1 ausdrücken.\n\nMehrsprachigkeit berücksichtigen – gleiche Bedeutung soll erkannt werden, egal ob auf Deutsch, Englisch, Französisch usw.\n\n📥 Eingabe\n\nDu erhältst freien Text (oder aus anderen Quellen extrahierte Inhalte, z. B. OCR-Ergebnisse aus PDFs/Bildern).\nBeispiel:\nLecture “Introduction to Robotics”\nProfessor Smith\nEvery Monday 10–12 Room B202\nNo class on October 14 (public holiday)\nRescheduled session on October 21 10:00–12:00 online\n\n🧩 Analyse-Regeln\n\nFür jede erkannte Zeitangabe (Datum, Zeitraum, Wochentag etc.) erstellst du einen JSON-Eintrag mit folgenden Feldern:\n\nFeld\tBeschreibung\ntitle\tKurzbeschreibung des Ereignisses (z. B. „Vorlesung Robotik“, „Meeting Marketing“)\ndatum_start\tStartdatum im Format YYYY-MM-DD – oder null, falls nur Wochentag bekannt\ndatum_ende\tEnddatum (wenn Zeitraum), sonst = datum_start\nzeit_start\tBeginn in HH:MM (24-h-Format) oder null\nzeit_ende\tEnde in HH:MM oder null\nart\tTyp (z. B. Vorlesung, Meeting, Labor, Workshop, Sprechstunde, Event, Sonstiges)\nstatus\tfindet statt / entfällt / verschoben / unklar\nraum\tRaumbezeichnung oder \"not found\"\nfach\tFach/Thema oder \"not found\"\ndozent\tName der verantwortlichen Person oder \"not found\"\nonline\ttrue wenn online / virtuell / hybrid erwähnt, sonst false\nserie\t\"ja\" wenn regelmäßig (z. B. „every Monday“, „jeden Freitag“), sonst \"nein\"\nkurzbeschreibung\tStichworte oder kurzer Kontext (z. B. „public holiday“, „cancelled due to conference“)\nconfidence\tZahl zwischen 0 und 1, Bewertung deiner Sicherheit\ntextausschnitt\tOriginaler Textabschnitt, aus dem die Information stammt\n\n🧠 Kontextverständnis\n\nWörter oder Phrasen wie „cancelled“, „keine“, „entfällt“, „public holiday“ ⇒ status = \"entfällt\"\n\n„rescheduled“, „verschoben“, „moved to“ ⇒ status = \"verschoben\"\n\n„every week“, „jeden Montag“ ⇒ serie = \"ja\"\n\n„online“, „via Zoom“, „Teams meeting“ ⇒ online = true\n\nFalls keine klaren Hinweise ⇒ status = \"findet statt\", confidence = 0.6–0.8\n\nWenn der Wochentag angegeben ist, aber kein konkretes Datum, nutze das nächste Vorkommen dieses Wochentags ab dem aktuellen Tag als datum_start.\n\n🧾 Ausgabeformat\n\nAntworte ausschließlich mit gültigem JSON – keine Erklärungen, kein Text davor oder danach.\nBeispielausgabe:\n{\n  \"events\":[\n  {\n    \"title\": \"SWT – Lecture & Lab\",\n    \"datum_start\": \"2025-10-13\",\n    \"datum_ende\": \"2025-10-19\",\n    \"zeit_start\": \"00:00\",\n    \"zeit_ende\": null,\n    \"art\": \"Lecture & Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Week 3 (KW42), red/green labels, timeline bars\",\n    \"confidence\": 0.86,\n    \"textausschnitt\": \"Week 3 • KW42 • Lecture & Lab\"\n  },\n  {\n    \"title\": \"Presentation\",\n    \"datum_start\": \"2025-11-24\",\n    \"datum_ende\": \"2025-11-24\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Presentation\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Marker over Week 8\",\n    \"confidence\": 0.78,\n    \"textausschnitt\": \"Presentation • Week 8\"\n  }\n]\n}\n\nWenn keine relevanten Ereignisse gefunden werden:\n[{ \"notice\": \"No valid dates or events detected.\" }]\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        1120
+      ],
+      "id": "b44ec053-640c-442a-b524-1a66a8cf0b2f",
+      "name": "Text Analyst"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "chatgpt-4o-latest"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1168,
+        464
+      ],
+      "id": "575bd0c9-4f76-4a55-82d1-905d007b0bd4",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "39cqRGXZeRzQxCqq",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4de12c81-7e1b-44f8-b0fa-915ca90b7a4d",
+              "leftValue": "={{ $json.match }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2b6a6276-6ac2-4c2f-b726-431cc814ae14",
+              "leftValue": "={{ $json.merged_version_created }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        352
+      ],
+      "id": "cbf4ac98-c8af-4f69-8136-dd643334d93d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analysiere das angehängte Bild und extrahiere alle Termine als JSON nach dem vorgegebenen Schema.\nVerarbeite Layout, Farben, Text und Strukturen vollständig, nicht nur OCR.\nNachdem du deine eigenen Termine erkannt hast, vergleiche dein Ergebnis mit den Daten aus der zweiten Analyseversion:\n{{ $json.output }}\nWenn beide Versionen in allen Kernfeldern (Datum, Zeit, Raum, Art, Status) übereinstimmen, setze \"match\": true.\nWenn sie abweichen, setze \"match\": false und – falls möglich – erstelle eine korrigierte, harmonisierte Endversion\n(\"merged_version_created\": true, wenn erfolgreich).\nAntworte ausschließlich mit gültigem JSON nach der Spezifikation im System Prompt.\n",
+        "options": {
+          "systemMessage": "Du bist ein präzises Vision-System. Analysiere ein Bild (Zeitplan, Gantt, Roadmap, Kalender, Aushang, Folie) und extrahiere alle relevanten Ereignisse mit Kontext. Das Bild kann Legenden, Farben, Wochen (Week/KW), Pfeile, Balken und Kästen enthalten. Verstehe Layout, Farben, Labels, Pfeilrichtungen und Positionsbezüge, nicht nur OCR-Text. Texte können in jeder Sprache vorkommen.\n\nZiele\n\nErkenne Einzeltermine, Serien, Zeiträume und Meilensteine.\n\nDeute Kontext: findet statt, entfällt, verschoben, unklar. Erkenne implizite Hinweise (z. B. „Public Holiday“, „No class“, Farblegende).\n\nLiefere kalenderfähige, normalisierte Daten.\n\nEingabehinweise (vom Aufrufer gesetzt, wenn verfügbar)\n\nbase_year: Jahr für Datumsableitung (z. B. 2025).\n\nsemester_start: ISO-Datum des Startmontags zur KW-Ableitung (z. B. 2025-09-29).\n\nkw_locale: „de-DE“ oder „ISO-8601“; wenn unklar → ISO-8601.\n\nOptional: vorab extrahierter OCR-Text.\n\nWenn nur KW/Week N angegeben ist: Bestimme Datum(e) über semester_start und kw_locale. Wenn nur Wochentage stehen: nutze das nächste Vorkommen ab heutigem Datum. Wenn Zeitspanne (Balken) über mehrere Wochen: setze datum_start und datum_ende entsprechend.\n\nFelder je erkanntem Ereignis\n\nGib eine Liste von Objekten zurück, eins pro Termin/Meilenstein. Fülle Felder robust; wenn nicht mit ≥95 % Sicherheit bestimmbar, setze \"not found\" oder false.\n\ntitle – kurzer Titel aus Bildkontext.\n\ndatum_start – YYYY-MM-DD oder null.\n\ndatum_ende – YYYY-MM-DD oder null (bei Zeiträumen sonst = datum_start).\n\nzeit_start – HH:MM oder null.\n\nzeit_ende – HH:MM oder null.\n\nart – z. B. Lecture/Vorlesung, Lab, Meeting, Workshop, Presentation, Holiday, Milestone, Sonstiges.\n\nstatus – findet statt | entfällt | verschoben | unklar.\n\nraum – Raum/Ort oder \"not found\".\n\nfach – Fach/Thema oder \"not found\".\n\ndozent – Person/Verantwortliche/r oder \"not found\".\n\nonline – true/false.\n\nserie – \"ja\" wenn explizit regelmäßig (z. B. „every Monday“, Farbbalken über mehrere Wochen mit gleichem Label), sonst \"nein\".\n\nkurzbeschreibung – wenige Stichworte, die deine Entscheidung stützen (z. B. „Week 3, KW42, Lecture & Lab, green = optional“).\n\nconfidence – Zahl 0..1 für deine Gesamtsicherheit.\n\ntextausschnitt – die relevante Originalphrase/Label(s) aus dem Bild (kurz).\n\nRegeln und Interpretation\n\nNutze Legenden/Farben: z. B. „red = Presence Event“, „green = optional“. Übertrage das in art/status/online.\n\n„No class“, „keine Vorlesung“, „Public Holiday“ ⇒ status=\"entfällt\", art passend (z. B. Holiday).\n\n„Rescheduled“, „verschoben auf …“ ⇒ status=\"verschoben\" und nutze neues Datum/Zeit.\n\nBalken über Wochen ⇒ Zeitraum (datum_start/datum_ende). Punktuelle Marker (Diamant/Pin) ⇒ Einzeltermin.\n\nMehrere Einträge pro Woche (Lecture/Lab/Presentation) ⇒ getrennte Objekte.\n\nZeiten: akzeptiere 8–11:15, 10–12, 10:00–12:00, 9.45–11.15 usw.; normalisiere auf HH:MM.\n\nMehrsprachig interpretieren (de/en/fr/…); Ausgabe bleibt auf Deutsch für status/serie.\n\nWenn Annahmen nötig (KW-Mapping, Jahr): trage Ergebnis ein und erkläre kurz in kurzbeschreibung; senke confidence.\n\nAusgabeformat\n\nAntworte nur mit gültigem JSON-Array. Kein Fließtext, keine Erklärungen außerhalb des JSON.\n\nWenn ein zweites Modell oder eine zweite Analyseversion bereitgestellt wird ():\n\nVergleiche deine erkannten Ereignisse mit der Vergleichsliste.\n\nPrüfe: datum_start, zeit_start, zeit_ende, raum, art, status.\n\nKleine Textunterschiede (z. B. Formatierung, Großschreibung, Abkürzungen) sollen ignoriert werden.\n\nWenn alle Kernfelder identisch oder semantisch gleich sind →\n\"match\": true, \"merged_version_created\": false.\n\nWenn Unterschiede in unwichtigen Feldern bestehen\n(z. B. kurzbeschreibung, textausschnitt, confidence) →\nführe Selbstüberprüfung durch und liefere eine endgültige, harmonisierte Version.\n\nSetze \"match\": false, \"merged_version_created\": true.\n\nWenn größere Abweichungen bestehen (Datum, Zeit, Raum, Art, Status) →\n\"match\": false, \"merged_version_created\": false.\n\nBei Selbstüberprüfung sollen alle Termine neu bewertet werden,\num ein einheitliches, konsistentes Ergebnis zu erzeugen.\n\nBeispielausgabe:\n\n{\n  \"events\":[\n  {\n    \"title\": \"SWT – Lecture & Lab\",\n    \"datum_start\": \"2025-10-13\",\n    \"datum_ende\": \"2025-10-19\",\n    \"zeit_start\": \"00:00\",\n    \"zeit_ende\": null,\n    \"art\": \"Lecture & Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Week 3 (KW42), red/green labels, timeline bars\",\n    \"confidence\": 0.86,\n    \"textausschnitt\": \"Week 3 • KW42 • Lecture & Lab\"\n  },\n  {\n    \"title\": \"Presentation\",\n    \"datum_start\": \"2025-11-24\",\n    \"datum_ende\": \"2025-11-24\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Presentation\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Marker over Week 8\",\n    \"confidence\": 0.78,\n    \"textausschnitt\": \"Presentation • Week 8\"\n  }\n],\n  \"match\": true,\n  \"merged_version_created\": false\n}\n\nWenn nichts Verwertbares erkennbar ist:\n[{ \"notice\": \"No valid events detected\", \"confidence\": 0.0 }]\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        272
+      ],
+      "id": "9a42c003-246e-47b4-b187-12795c7b5b5d",
+      "name": "Picture Analyst02 (comparison)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        384,
+        768
+      ],
+      "id": "85a9b4af-3807-4e9f-9be6-225da5fef6c0",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output || \"\";\n\n// ```json ... ``` entfernen\nlet clean = raw.trim()\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/```$/i, \"\")\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  return [{ json: { error: \"Fehler beim Parsen\", raw: clean } }];\n}\n\n// Nur match & merged_version_created zurückgeben\nreturn [{\n  json: {\n    match: parsed.match,\n    merged_version_created: parsed.merged_version_created \n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        320
+      ],
+      "id": "56ed9844-b792-44d2-9360-4ec6622911fe",
+      "name": "extract match/merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log(\"Script ausgeführt für:\", $input.all().length, \"Inputs\");\n\nconst raw = $('Picture Analyst02 (comparison)').first().json.output || \"\";\nconst frame_name = $('(P) meta data FRAME').first().json.Name\n// Entferne ```json ... ``` falls vorhanden\nlet clean = raw.trim()\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/```$/i, \"\")\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  return [{ json: { error: \"Fehler beim Parsen\", raw: clean } }];\n}\n\n// Entferne match & merged_version_created\ndelete parsed.match;\ndelete parsed.merged_version_created;\n\n\nconst framed = {\n  Name: frame_name,\n  Events: parsed.events \n}\n// Falls kein Array, komplettes Objekt zurückgeben\nreturn [{ json: framed}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        496
+      ],
+      "id": "51ebd279-2889-420c-9939-758deff12182",
+      "name": "extract list"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef8a6e25-795b-44d2-884c-e350ffbdc622",
+              "name": "Name",
+              "value": "Picture analysis",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        592
+      ],
+      "id": "87d72163-f8a0-41ce-a28e-32510202e036",
+      "name": "(P) meta data FRAME"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "output": "empty"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -176,
+        416
+      ],
+      "id": "1ac924e8-5d23-4259-8d25-9300f3c28e70",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output || \"\";\nconst frame_name = $('Text Input').first().json.courseName\n// Entferne ```json ... ``` falls vorhanden\nlet clean = raw.trim()\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/```$/i, \"\")\n  .trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(clean);\n} catch (e) {\n  return [{ json: { error: \"Fehler beim Parsen\", raw: clean } }];\n}\n\n\nconst framed = {\n  Name: frame_name,\n  Events: parsed.events \n}\n// Falls kein Array, komplettes Objekt zurückgeben\nreturn [{ json: framed}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        976
+      ],
+      "id": "ed05f55b-059b-43af-94c7-d9563d634c26",
+      "name": "extract list1"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "a9fc09da2a6935ab685a6c44c53e709016fde438b7d27eb69a01bc2aeb38d035@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "N8N"
+        },
+        "start": "={{ $json.Events[0].datum_start }}",
+        "end": "={{ $json.Events[0].datum_ende }}",
+        "additionalFields": {
+          "description": "={{ $json.Events[0].title }} Desc:{{ $json.Events[0].kurzbeschreibung }}",
+          "location": "={{ $json.Events[0].raum }}",
+          "summary": "={{ $json.Name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        752
+      ],
+      "id": "5e1aa3ce-875e-4dda-bf93-4bcd611be28a",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ZRlg4DcY3XfJao3v",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9172f421-b952-4d8e-87a6-846a946ee78b",
+              "name": "courseName",
+              "value": "Kryptografie",
+              "type": "string"
+            },
+            {
+              "id": "d31f6c5b-8879-43f6-bcbf-0fc95702cae4",
+              "name": "sourceUrl",
+              "value": "https://moodle.hs-esslingen.de/moodle/course/view.php?id=33286",
+              "type": "string"
+            },
+            {
+              "id": "cca6883f-7a69-4f75-be6b-0f876dc1f7e8",
+              "name": "text",
+              "value": "Kontakt: Prof. Martin Mink, martin.mink@hs-esslingen.de, Sprechstunde: Mittwoch 14-15 Uhr, F01.352 (u. nach Vereinbarung; bitte Anmeldung per E-Mail)  Vorlesung: Freitag, 8:00 - 11:15 Uhr, Raum: F01.214  Labor (findet an drei Terminen statt): vorauss. zum Vorlesungstermin (s.o.), Raum: (folgt)     Terminübersicht (vorauss.):       keine Vorlesung: 3.10. (Feiertag)     10.10. (Vorlesung)     17.10. (Vorlesung)     24.10. (Vorlesung)     31.10. (Vorlesung)     7.11. (vorauss., Labor)     14.11. (Vorlesung)     21.11. (Vorlesung)     28.11. (Vorlesung)     5.12. (vorauss., Labor)     12.12. (Vorlesung)     19.12. (Vorlesung)     9.1. (Vorlesung)     16.1. (vorauss., Labor)     23.1. (Vorlesung) - findet vorauss. nicht statt  Klausur Termin: (wird vom Prüfungsamt bekannt gegeben) Anmeldung: (s. Terminkalender) Hilfsmittel: 1 DIN A4-Blatt (2 Seiten) selbstgeschriebene, handschriftliche Notizen (keine Kopie o. Ausdruck), wissenschaftl. Taschenrechner (wie der von der Hochschule ausgegebene, d.h. nicht-programmierbar, kein Grafikdisplay)",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1568,
+        1024
+      ],
+      "id": "8215f1c2-7d1d-455d-ba24-80420793f78f",
+      "name": "Text Input"
+    }
+  ],
+  "pinData": {
+    "(P) meta data FRAME": [
+      {
+        "json": {
+          "Name": "Picture analysis"
+        }
+      }
+    ],
+    "Picture Analyst02 (comparison)": [
+      {
+        "json": {
+          "output": "{\n  \"events\": [\n    {\n      \"title\": \"Lecture: Introduction, Build small groups\",\n      \"datum_start\": \"2025-09-29\",\n      \"datum_ende\": \"2025-09-29\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lecture\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 1 (KW40), red presence diamond\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lecture: Introduction, Build small groups • KW40\"\n    },\n    {\n      \"title\": \"Lecture: Introduction to software project, preparation of customer interview\",\n      \"datum_start\": \"2025-10-06\",\n      \"datum_ende\": \"2025-10-06\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lecture\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 2 (KW41), red block\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lecture: Introduction to software project, preparation of customer interview\"\n    },\n    {\n      \"title\": \"Lab: Customer interview\",\n      \"datum_start\": \"2025-10-06\",\n      \"datum_ende\": \"2025-10-06\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lab\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 2 (KW41), red block adjacent to lecture\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lab: Customer interview\"\n    },\n    {\n      \"title\": \"Lecture & Lab: Present requirements specification, prototype work, coaching\",\n      \"datum_start\": \"2025-10-13\",\n      \"datum_ende\": \"2025-10-13\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lecture & Lab\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 3 (KW42), red block\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lecture & Lab: Present requirements specification, prototype work, coaching\"\n    },\n    {\n      \"title\": \"Presentation\",\n      \"datum_start\": \"2025-10-13\",\n      \"datum_ende\": \"2025-10-13\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Presentation\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 3 triangle marker\",\n      \"confidence\": 0.88,\n      \"textausschnitt\": \"Presentation • W3\"\n    },\n    {\n      \"title\": \"Work on design, coaching\",\n      \"datum_start\": \"2025-10-20\",\n      \"datum_ende\": \"2025-10-20\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Sonstiges\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 4 (KW43), green optional session\",\n      \"confidence\": 0.9,\n      \"textausschnitt\": \"Lecture & Lab: Work on design, coaching\"\n    },\n    {\n      \"title\": \"Lecture: Present design\",\n      \"datum_start\": \"2025-10-27\",\n      \"datum_ende\": \"2025-10-27\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lecture\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 5 (KW44), red lecture block\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lecture: Present design\"\n    },\n    {\n      \"title\": \"Lab: Fix design, work on implementation, coaching\",\n      \"datum_start\": \"2025-10-27\",\n      \"datum_ende\": \"2025-10-27\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lab\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 5 (KW44), orange lab box\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lab: Fix design, work on impl., coaching\"\n    },\n    {\n      \"title\": \"Presentation\",\n      \"datum_start\": \"2025-10-27\",\n      \"datum_ende\": \"2025-10-27\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Presentation\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 5 triangle marker\",\n      \"confidence\": 0.88,\n      \"textausschnitt\": \"Presentation Week 5\"\n    },\n    {\n      \"title\": \"Work on implementation & documentation, coaching\",\n      \"datum_start\": \"2025-11-03\",\n      \"datum_ende\": \"2025-11-03\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Sonstiges\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 6 (KW45), green optional box\",\n      \"confidence\": 0.91,\n      \"textausschnitt\": \"Lecture and Lab: Work on implementation & documentation\"\n    },\n    {\n      \"title\": \"Work on documentation & testing, coaching\",\n      \"datum_start\": \"2025-11-10\",\n      \"datum_ende\": \"2025-11-10\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Sonstiges\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 7 (KW46), green optional session\",\n      \"confidence\": 0.91,\n      \"textausschnitt\": \"Work on documentation & testing, coaching\"\n    },\n    {\n      \"title\": \"Presentation\",\n      \"datum_start\": \"2025-11-17\",\n      \"datum_ende\": \"2025-11-17\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Presentation\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 8 triangle marker = final presentation\",\n      \"confidence\": 0.88,\n      \"textausschnitt\": \"Presentation W8\"\n    },\n    {\n      \"title\": \"Lecture: Final presentation of project 1, lessons learned\",\n      \"datum_start\": \"2025-11-17\",\n      \"datum_ende\": \"2025-11-17\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lecture\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 8 (KW47)\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lecture: Final presentation of project 1, lessons learned\"\n    },\n    {\n      \"title\": \"Lab: Start Scrum Project\",\n      \"datum_start\": \"2025-11-17\",\n      \"datum_ende\": \"2025-11-17\",\n      \"zeit_start\": null,\n      \"zeit_ende\": null,\n      \"art\": \"Lab\",\n      \"status\": \"findet statt\",\n      \"raum\": \"not found\",\n      \"fach\": \"Software Project 1\",\n      \"dozent\": \"not found\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Week 8 (KW47), red lab box\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"Lab: Start Scrum Project\"\n    }\n  ],\n  \"match\": true,\n  \"merged_version_created\": false\n}"
+        }
+      }
+    ],
+    "Picture Analyst": [
+      {
+        "json": {
+          "output": "[\n  {\n    \"title\": \"Lecture: Introduction, Build small groups\",\n    \"datum_start\": \"2025-09-29\",\n    \"datum_ende\": \"2025-09-29\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lecture\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW40, Week 1, red diamond = presence event\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"KW40 Lecture Introduction, Build small groups\"\n  },\n  {\n    \"title\": \"Lecture: Introduction to software project, preparation of customer interview\",\n    \"datum_start\": \"2025-10-06\",\n    \"datum_ende\": \"2025-10-06\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lecture\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW41, Week 2, red block = lecture presence event\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"KW41 Lecture Introduction to software project, preparation of customer interview\"\n  },\n  {\n    \"title\": \"Lab: Customer interview\",\n    \"datum_start\": \"2025-10-06\",\n    \"datum_ende\": \"2025-10-06\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW41, Week 2, red block\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"Lab Customer interview\"\n  },\n  {\n    \"title\": \"Lecture & Lab: Present requirements specification, prototype work, coaching\",\n    \"datum_start\": \"2025-10-13\",\n    \"datum_ende\": \"2025-10-13\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lecture & Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW42, Week 3, red block\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"KW42 Lecture & Lab Present req. specification (each group, 15 mins), work on prototype, coaching\"\n  },\n  {\n    \"title\": \"Presentation\",\n    \"datum_start\": \"2025-10-13\",\n    \"datum_ende\": \"2025-10-13\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Presentation\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Week 3, orange triangle\",\n    \"confidence\": 0.88,\n    \"textausschnitt\": \"Presentation Week 3\"\n  },\n  {\n    \"title\": \"Work on design, coaching\",\n    \"datum_start\": \"2025-10-20\",\n    \"datum_ende\": \"2025-10-20\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Sonstiges\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW43, Week 4, green optional event\",\n    \"confidence\": 0.9,\n    \"textausschnitt\": \"KW43 Lecture & Lab Work on design, coaching\"\n  },\n  {\n    \"title\": \"Lecture: Present design\",\n    \"datum_start\": \"2025-10-27\",\n    \"datum_ende\": \"2025-10-27\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lecture\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW44, Week 5, red block\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"KW44 Lecture Present design (each group, 15 mins), work on implementation, coaching\"\n  },\n  {\n    \"title\": \"Lab: Fix design, work on implementation, coaching\",\n    \"datum_start\": \"2025-10-27\",\n    \"datum_ende\": \"2025-10-27\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW44, Week 5, lab event\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"Lab Fix design, work on impl., coaching\"\n  },\n  {\n    \"title\": \"Presentation\",\n    \"datum_start\": \"2025-10-27\",\n    \"datum_ende\": \"2025-10-27\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Presentation\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Week 5, orange triangle\",\n    \"confidence\": 0.88,\n    \"textausschnitt\": \"Presentation\"\n  },\n  {\n    \"title\": \"Work on implementation & documentation, coaching\",\n    \"datum_start\": \"2025-11-03\",\n    \"datum_ende\": \"2025-11-03\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Sonstiges\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW45, Week 6, green box = optional work session\",\n    \"confidence\": 0.91,\n    \"textausschnitt\": \"KW45 Lecture and Lab Work on implementation & documentation, coaching\"\n  },\n  {\n    \"title\": \"Work on documentation & testing, coaching\",\n    \"datum_start\": \"2025-11-10\",\n    \"datum_ende\": \"2025-11-10\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Sonstiges\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW46, Week 7, green optional event\",\n    \"confidence\": 0.91,\n    \"textausschnitt\": \"KW46 Lecture and Lab Work on documentation & testing, coaching\"\n  },\n  {\n    \"title\": \"Presentation\",\n    \"datum_start\": \"2025-11-17\",\n    \"datum_ende\": \"2025-11-17\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Presentation\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"Week 8, orange triangle\",\n    \"confidence\": 0.88,\n    \"textausschnitt\": \"Presentation • Week 8\"\n  },\n  {\n    \"title\": \"Lecture: Final presentation of project 1, lessons learned\",\n    \"datum_start\": \"2025-11-17\",\n    \"datum_ende\": \"2025-11-17\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lecture\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW47, Week 8, red lecture block\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"Lecture Final presentation of project 1, lessons learned\"\n  },\n  {\n    \"title\": \"Lab: Start Scrum Project\",\n    \"datum_start\": \"2025-11-17\",\n    \"datum_ende\": \"2025-11-17\",\n    \"zeit_start\": null,\n    \"zeit_ende\": null,\n    \"art\": \"Lab\",\n    \"status\": \"findet statt\",\n    \"raum\": \"not found\",\n    \"fach\": \"Software Project 1\",\n    \"dozent\": \"not found\",\n    \"online\": false,\n    \"serie\": \"nein\",\n    \"kurzbeschreibung\": \"KW47, Week 8, red lab block\",\n    \"confidence\": 0.95,\n    \"textausschnitt\": \"Lab Start Scrum Project\"\n  }\n]"
+        }
+      }
+    ],
+    "Text Analyst": [
+      {
+        "json": {
+          "output": "{\n  \"events\": [\n    {\n      \"title\": \"Sprechstunde Prof. Martin Mink\",\n      \"datum_start\": null,\n      \"datum_ende\": null,\n      \"zeit_start\": \"14:00\",\n      \"zeit_ende\": \"15:00\",\n      \"art\": \"Sprechstunde\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.352\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"ja\",\n      \"kurzbeschreibung\": \"Mittwochs, nach Vereinbarung, Anmeldung per E-Mail\",\n      \"confidence\": 0.9,\n      \"textausschnitt\": \"Sprechstunde: Mittwoch 14-15 Uhr, F01.352 (u. nach Vereinbarung; bitte Anmeldung per E-Mail)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-10-10\",\n      \"datum_ende\": \"2024-10-10\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"10.10. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-10-17\",\n      \"datum_ende\": \"2024-10-17\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"17.10. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-10-24\",\n      \"datum_ende\": \"2024-10-24\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"24.10. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-10-31\",\n      \"datum_ende\": \"2024-10-31\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"31.10. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung entfällt (Feiertag)\",\n      \"datum_start\": \"2024-10-03\",\n      \"datum_ende\": \"2024-10-03\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"entfällt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"3.10. Feiertag\",\n      \"confidence\": 1,\n      \"textausschnitt\": \"keine Vorlesung: 3.10. (Feiertag)\"\n    },\n    {\n      \"title\": \"Labor Prof. Martin Mink\",\n      \"datum_start\": \"2024-11-07\",\n      \"datum_ende\": \"2024-11-07\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Labor\",\n      \"status\": \"findet statt\",\n      \"raum\": \"folgt\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"voraussichtlich Labor zum Vorlesungstermin\",\n      \"confidence\": 0.8,\n      \"textausschnitt\": \"7.11. (vorauss., Labor)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-11-14\",\n      \"datum_ende\": \"2024-11-14\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"14.11. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-11-21\",\n      \"datum_ende\": \"2024-11-21\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"entfällt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"23.1. (Vorlesung) - findet vorauss. nicht statt\",\n      \"confidence\": 0.9,\n      \"textausschnitt\": \"23.1. (Vorlesung) - findet vorauss. nicht statt\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-11-28\",\n      \"datum_ende\": \"2024-11-28\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"28.11. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Labor Prof. Martin Mink\",\n      \"datum_start\": \"2024-12-05\",\n      \"datum_ende\": \"2024-12-05\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Labor\",\n      \"status\": \"findet statt\",\n      \"raum\": \"folgt\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"voraussichtlich Labor zum Vorlesungstermin\",\n      \"confidence\": 0.8,\n      \"textausschnitt\": \"5.12. (vorauss., Labor)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-12-12\",\n      \"datum_ende\": \"2024-12-12\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"12.12. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2024-12-19\",\n      \"datum_ende\": \"2024-12-19\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"19.12. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Vorlesung Prof. Martin Mink\",\n      \"datum_start\": \"2025-01-09\",\n      \"datum_ende\": \"2025-01-09\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Vorlesung\",\n      \"status\": \"findet statt\",\n      \"raum\": \"F01.214\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"Freitag Vorlesung\",\n      \"confidence\": 0.95,\n      \"textausschnitt\": \"9.1. (Vorlesung)\"\n    },\n    {\n      \"title\": \"Labor Prof. Martin Mink\",\n      \"datum_start\": \"2025-01-16\",\n      \"datum_ende\": \"2025-01-16\",\n      \"zeit_start\": \"08:00\",\n      \"zeit_ende\": \"11:15\",\n      \"art\": \"Labor\",\n      \"status\": \"findet statt\",\n      \"raum\": \"folgt\",\n      \"fach\": \"not found\",\n      \"dozent\": \"Prof. Martin Mink\",\n      \"online\": false,\n      \"serie\": \"nein\",\n      \"kurzbeschreibung\": \"voraussichtlich Labor zum Vorlesungstermin\",\n      \"confidence\": 0.8,\n      \"textausschnitt\": \"16.1. (vorauss., Labor)\"\n    }\n  ]\n}"
+        }
+      }
+    ],
+    "Text Input": [
+      {
+        "json": {
+          "courseName": "Kryptografie",
+          "sourceUrl": "https://moodle.hs-esslingen.de/moodle/course/view.php?id=33286",
+          "text": "Kontakt: Prof. Martin Mink, martin.mink@hs-esslingen.de, Sprechstunde: Mittwoch 14-15 Uhr, F01.352 (u. nach Vereinbarung; bitte Anmeldung per E-Mail)  Vorlesung: Freitag, 8:00 - 11:15 Uhr, Raum: F01.214  Labor (findet an drei Terminen statt): vorauss. zum Vorlesungstermin (s.o.), Raum: (folgt)     Terminübersicht (vorauss.):       keine Vorlesung: 3.10. (Feiertag)     10.10. (Vorlesung)     17.10. (Vorlesung)     24.10. (Vorlesung)     31.10. (Vorlesung)     7.11. (vorauss., Labor)     14.11. (Vorlesung)     21.11. (Vorlesung)     28.11. (Vorlesung)     5.12. (vorauss., Labor)     12.12. (Vorlesung)     19.12. (Vorlesung)     9.1. (Vorlesung)     16.1. (vorauss., Labor)     23.1. (Vorlesung) - findet vorauss. nicht statt  Klausur Termin: (wird vom Prüfungsamt bekannt gegeben) Anmeldung: (s. Terminkalender) Hilfsmittel: 1 DIN A4-Blatt (2 Seiten) selbstgeschriebene, handschriftliche Notizen (keine Kopie o. Ausdruck), wissenschaftl. Taschenrechner (wie der von der Hochschule ausgegebene, d.h. nicht-programmierbar, kein Grafikdisplay)"
+        }
+      }
+    ],
+    "Merge": [
+      {
+        "json": {
+          "Name": "Picture analysis",
+          "Events": [
+            {
+              "title": "Lecture: Introduction, Build small groups",
+              "datum_start": "2025-09-29",
+              "datum_ende": "2025-09-29",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lecture",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 1 (KW40), red presence diamond",
+              "confidence": 0.95,
+              "textausschnitt": "Lecture: Introduction, Build small groups • KW40"
+            },
+            {
+              "title": "Lecture: Introduction to software project, preparation of customer interview",
+              "datum_start": "2025-10-06",
+              "datum_ende": "2025-10-06",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lecture",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 2 (KW41), red block",
+              "confidence": 0.95,
+              "textausschnitt": "Lecture: Introduction to software project, preparation of customer interview"
+            },
+            {
+              "title": "Lab: Customer interview",
+              "datum_start": "2025-10-06",
+              "datum_ende": "2025-10-06",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lab",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 2 (KW41), red block adjacent to lecture",
+              "confidence": 0.95,
+              "textausschnitt": "Lab: Customer interview"
+            },
+            {
+              "title": "Lecture & Lab: Present requirements specification, prototype work, coaching",
+              "datum_start": "2025-10-13",
+              "datum_ende": "2025-10-13",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lecture & Lab",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 3 (KW42), red block",
+              "confidence": 0.95,
+              "textausschnitt": "Lecture & Lab: Present requirements specification, prototype work, coaching"
+            },
+            {
+              "title": "Presentation",
+              "datum_start": "2025-10-13",
+              "datum_ende": "2025-10-13",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Presentation",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 3 triangle marker",
+              "confidence": 0.88,
+              "textausschnitt": "Presentation • W3"
+            },
+            {
+              "title": "Work on design, coaching",
+              "datum_start": "2025-10-20",
+              "datum_ende": "2025-10-20",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Sonstiges",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 4 (KW43), green optional session",
+              "confidence": 0.9,
+              "textausschnitt": "Lecture & Lab: Work on design, coaching"
+            },
+            {
+              "title": "Lecture: Present design",
+              "datum_start": "2025-10-27",
+              "datum_ende": "2025-10-27",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lecture",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 5 (KW44), red lecture block",
+              "confidence": 0.95,
+              "textausschnitt": "Lecture: Present design"
+            },
+            {
+              "title": "Lab: Fix design, work on implementation, coaching",
+              "datum_start": "2025-10-27",
+              "datum_ende": "2025-10-27",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lab",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 5 (KW44), orange lab box",
+              "confidence": 0.95,
+              "textausschnitt": "Lab: Fix design, work on impl., coaching"
+            },
+            {
+              "title": "Presentation",
+              "datum_start": "2025-10-27",
+              "datum_ende": "2025-10-27",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Presentation",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 5 triangle marker",
+              "confidence": 0.88,
+              "textausschnitt": "Presentation Week 5"
+            },
+            {
+              "title": "Work on implementation & documentation, coaching",
+              "datum_start": "2025-11-03",
+              "datum_ende": "2025-11-03",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Sonstiges",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 6 (KW45), green optional box",
+              "confidence": 0.91,
+              "textausschnitt": "Lecture and Lab: Work on implementation & documentation"
+            },
+            {
+              "title": "Work on documentation & testing, coaching",
+              "datum_start": "2025-11-10",
+              "datum_ende": "2025-11-10",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Sonstiges",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 7 (KW46), green optional session",
+              "confidence": 0.91,
+              "textausschnitt": "Work on documentation & testing, coaching"
+            },
+            {
+              "title": "Presentation",
+              "datum_start": "2025-11-17",
+              "datum_ende": "2025-11-17",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Presentation",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 8 triangle marker = final presentation",
+              "confidence": 0.88,
+              "textausschnitt": "Presentation W8"
+            },
+            {
+              "title": "Lecture: Final presentation of project 1, lessons learned",
+              "datum_start": "2025-11-17",
+              "datum_ende": "2025-11-17",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lecture",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 8 (KW47)",
+              "confidence": 0.95,
+              "textausschnitt": "Lecture: Final presentation of project 1, lessons learned"
+            },
+            {
+              "title": "Lab: Start Scrum Project",
+              "datum_start": "2025-11-17",
+              "datum_ende": "2025-11-17",
+              "zeit_start": null,
+              "zeit_ende": null,
+              "art": "Lab",
+              "status": "findet statt",
+              "raum": "not found",
+              "fach": "Software Project 1",
+              "dozent": "not found",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Week 8 (KW47), red lab box",
+              "confidence": 0.95,
+              "textausschnitt": "Lab: Start Scrum Project"
+            }
+          ]
+        }
+      },
+      {
+        "json": {
+          "Name": "Kryptografie",
+          "Events": [
+            {
+              "title": "Sprechstunde Prof. Martin Mink",
+              "datum_start": null,
+              "datum_ende": null,
+              "zeit_start": "14:00",
+              "zeit_ende": "15:00",
+              "art": "Sprechstunde",
+              "status": "findet statt",
+              "raum": "F01.352",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "ja",
+              "kurzbeschreibung": "Mittwochs, nach Vereinbarung, Anmeldung per E-Mail",
+              "confidence": 0.9,
+              "textausschnitt": "Sprechstunde: Mittwoch 14-15 Uhr, F01.352 (u. nach Vereinbarung; bitte Anmeldung per E-Mail)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-10-10",
+              "datum_ende": "2024-10-10",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "10.10. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-10-17",
+              "datum_ende": "2024-10-17",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "17.10. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-10-24",
+              "datum_ende": "2024-10-24",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "24.10. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-10-31",
+              "datum_ende": "2024-10-31",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "31.10. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung entfällt (Feiertag)",
+              "datum_start": "2024-10-03",
+              "datum_ende": "2024-10-03",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "entfällt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "3.10. Feiertag",
+              "confidence": 1,
+              "textausschnitt": "keine Vorlesung: 3.10. (Feiertag)"
+            },
+            {
+              "title": "Labor Prof. Martin Mink",
+              "datum_start": "2024-11-07",
+              "datum_ende": "2024-11-07",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Labor",
+              "status": "findet statt",
+              "raum": "folgt",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "voraussichtlich Labor zum Vorlesungstermin",
+              "confidence": 0.8,
+              "textausschnitt": "7.11. (vorauss., Labor)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-11-14",
+              "datum_ende": "2024-11-14",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "14.11. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-11-21",
+              "datum_ende": "2024-11-21",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "entfällt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "23.1. (Vorlesung) - findet vorauss. nicht statt",
+              "confidence": 0.9,
+              "textausschnitt": "23.1. (Vorlesung) - findet vorauss. nicht statt"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-11-28",
+              "datum_ende": "2024-11-28",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "28.11. (Vorlesung)"
+            },
+            {
+              "title": "Labor Prof. Martin Mink",
+              "datum_start": "2024-12-05",
+              "datum_ende": "2024-12-05",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Labor",
+              "status": "findet statt",
+              "raum": "folgt",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "voraussichtlich Labor zum Vorlesungstermin",
+              "confidence": 0.8,
+              "textausschnitt": "5.12. (vorauss., Labor)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-12-12",
+              "datum_ende": "2024-12-12",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "12.12. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2024-12-19",
+              "datum_ende": "2024-12-19",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "19.12. (Vorlesung)"
+            },
+            {
+              "title": "Vorlesung Prof. Martin Mink",
+              "datum_start": "2025-01-09",
+              "datum_ende": "2025-01-09",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Vorlesung",
+              "status": "findet statt",
+              "raum": "F01.214",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "Freitag Vorlesung",
+              "confidence": 0.95,
+              "textausschnitt": "9.1. (Vorlesung)"
+            },
+            {
+              "title": "Labor Prof. Martin Mink",
+              "datum_start": "2025-01-16",
+              "datum_ende": "2025-01-16",
+              "zeit_start": "08:00",
+              "zeit_ende": "11:15",
+              "art": "Labor",
+              "status": "findet statt",
+              "raum": "folgt",
+              "fach": "not found",
+              "dozent": "Prof. Martin Mink",
+              "online": false,
+              "serie": "nein",
+              "kurzbeschreibung": "voraussichtlich Labor zum Vorlesungstermin",
+              "confidence": 0.8,
+              "textausschnitt": "16.1. (vorauss., Labor)"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Text Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Picture Analyst",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Picture Analyst02 (comparison)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "(P) meta data FRAME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Picture Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Picture Analyst": {
+      "main": [
+        [
+          {
+            "node": "Picture Analyst02 (comparison)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Analyst": {
+      "main": [
+        [
+          {
+            "node": "extract list1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Picture Analyst02 (comparison)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Picture Analyst02 (comparison)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Picture Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Picture Analyst02 (comparison)": {
+      "main": [
+        [
+          {
+            "node": "extract match/merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract match/merge": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract list": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        []
+      ]
+    },
+    "(P) meta data FRAME": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "extract list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract list1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Text Input": {
+      "main": [
+        [
+          {
+            "node": "Text Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d3f54685-97fe-4cf9-80b9-e9fe193de4af",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dbe1b9429f3740a9da8589f79a72fab6f268488760d0ab78738326392f258508"
+  },
+  "id": "0OUElwOoH8vWErrB",
+  "tags": []
+}
