@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Text Selection Popup",
+  "version": "1.0",
+  "description": "Zeigt markierten Text in einem Popup bei Ctrl+Shift+C",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Text Selection Popup"
+  },
+  "commands": {
+    "show-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Zeigt markierten Text im Popup"
+    }
+  }
+}
