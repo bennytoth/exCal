@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Calendar Entry Creator",
+  "version": "1.0",
+  "description": "Create calendar entries from selected text.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Create Calendar Entry"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Open Calendar Extension"
+    }
+  }
+}
