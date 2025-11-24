@@ -1,0 +1,90 @@
+
+📄 Projekt-Definition: AI Calendar Extension (Version 1.0)
+Zielsetzung: Entwicklung einer robusten, skalierbaren Browser-Extension, die Webseiten-Kontext intelligent nutzt, um Kalendereinträge zu erstellen, und dabei eine persistente, nutzerfreundliche UI bietet.
+
+1. Funktionale Anforderungen (Functional Requirements)
+A. Frontend (Browser Extension)
+Ziel: Maximale Nutzerkontrolle und Daten-Persistenz.
+
+FE-01: State Persistence (Persistenz):
+
+Das Problem: User öffnet Popup, markiert Text, klickt aus Versehen weg -> Daten weg.
+
+Die Lösung: Der aktuelle Status (markierter Text, KI-Antwort, User-Edits) muss im localStorage oder chrome.storage gespeichert werden. Beim erneuten Öffnen des Popups ist der letzte Stand sofort wieder sichtbar.
+
+FE-02: Erweiterte Datenerfassung (Context Awareness):
+
+Das Frontend sendet nicht mehr nur selectedText.
+
+Es sendet ein JSON-Paket bestehend aus:
+
+selectedText (Primärer Fokus)
+
+pageTitle (Meta-Title)
+
+url (Quelle)
+
+pageContent (Gefilterter innerText des Body als Kontext für fehlende Infos wie Jahr, Ort, Zeitzone). Achtung: Muss limitiert werden, um Token-Limits nicht zu sprengen.
+
+FE-03: Review UI (Kontrolle):
+
+Bevor der Link generiert wird (oder nachdem die KI Daten liefert), sieht der User die extrahierten Felder (Titel, Zeit, Ort) in Input-Feldern im Popup.
+
+Der User kann diese korrigieren, bevor er auf "Add to Calendar" klickt.
+
+B. Backend Logic (Server/n8n)
+Ziel: Intelligente Verarbeitung von Kontext und Fehlertoleranz.
+
+BE-01: Context-Priority-Logik:
+
+Der Workflow muss unterscheiden:
+
+Ist selectedText vorhanden? -> Nutze dies als primäre Quelle.
+
+Fehlen Infos (z.B. Jahr)? -> Suche im pageContent.
+
+Ist selectedText leer? -> Versuche, das Hauptevent aus dem pageContent zu erraten.
+
+BE-02: System Prompt Engineering:
+
+Iterative Optimierung des Prompts, um Halluzinationen zu vermeiden.
+
+Integration der Metadaten in den Prompt (z.B. "Die Quelle ist URL X, nutze dies für Kontext, aber erfinde keine Fakten.").
+
+BE-03: Error Handling & Fallback:
+
+Wenn die KI kein valides JSON liefert, greift ein Retry-Mechanismus (Self-Correction Loop).
+
+Der Server sendet standardisierte Fehlermeldungen an den Client, die im Popup user-freundlich angezeigt werden ("Konnte kein Datum finden").
+
+2. Infrastruktur & Skalierbarkeit (Non-Functional Requirements)
+Ziel: Vorbereitung auf Multi-User Betrieb und Lastspitzen.
+
+INF-01: Security & Isolation:
+
+Implementierung von API-Keys (Header Auth) zur Absicherung des Webhooks.
+
+Sicherstellung, dass n8n-Exekutionen isoliert sind (Statelessness): Daten von User A dürfen niemals im Context von User B auftauchen.
+
+INF-02: Load Testing & Capacity Planning:
+
+Durchführung von Lasttests (z.B. mit Apache Benchmark oder k6).
+
+Metrik-Ziel: Ermitteln, wie viele gleichzeitige Requests (RPS) eine Single-Instance (Docker Container) verarbeiten kann, bevor sie timeouts wirft (Engpass ist meist I/O oder Node.js Event Loop).
+
+INF-03: Scalability Architecture (Konzept):
+
+Erarbeitung eines Setups für Horizontal Scaling:
+
+Load Balancer (z.B. Traefik oder Nginx) als Eingangstor.
+
+Dahinter: Mehrere n8n-Webhook-Worker (Stateless), die die Anfragen parallel abarbeiten.
+
+Hinweis: n8n bietet hierfür einen speziellen "Queue Mode" mit Redis an, den wir evaluieren müssen.
+
+3. Qualitätssicherung (QA)
+QA-01: Test Cases:
+
+Erstellung eines Test-Sets mit 20 verschiedenen Datumsformaten (Deutsch, Englisch, "nächsten Dienstag", "in 3 Tagen").
+
+Testen von Edge-Cases: Leere Seite, extrem viel Text, widersprüchliche Daten.
