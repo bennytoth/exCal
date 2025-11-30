@@ -12,6 +12,7 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - NODE_ENV=production
+      - N8N_PROJECT_MODE=basic
       - WEBHOOK_URL=http://localhost:5678/
       # Sicherheit (Optional aber empfohlen):
       # - N8N_BASIC_AUTH_ACTIVE=true

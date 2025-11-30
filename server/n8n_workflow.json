@@ -1,95 +1,359 @@
 {
-    "name": "Calendar Extension Backend",
-    "nodes": [
-        {
-            "parameters": {
-                "httpMethod": "POST",
-                "path": "calendar-parse",
-                "options": {}
-            },
-            "name": "Webhook",
-            "type": "n8n-nodes-base.webhook",
-            "typeVersion": 1,
-            "position": [
-                460,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "model": "gpt-4o",
-                "prompt": "={{ $json.body.text }}",
-                "systemMessage": "You are a calendar assistant. Extract the following details from the user's text: Title, Start Date (YYYY-MM-DD), Start Time (HH:MM), End Date (YYYY-MM-DD), End Time (HH:MM), Description, and Location. \n\nIf any information is missing, make a reasonable guess based on context (e.g., if no year is specified, assume the next occurrence). If duration is not specified, assume 1 hour.\n\nReturn ONLY a valid JSON object with these keys: title, startDate, startTime, endDate, endTime, description, location. Do not wrap in markdown code blocks.",
-                "options": {}
-            },
-            "name": "AI Agent",
-            "type": "@n8n/n8n-nodes-langchain.chainLlm",
-            "typeVersion": 1,
-            "position": [
-                680,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "jsCode": "let event = $input.first().json;\n\n// Parse if it's a string (common with AI nodes)\nif (typeof event === 'string') {\n  try {\n    event = JSON.parse(event);\n  } catch (e) {\n    // If parsing fails, try to find a text property\n  }\n}\n\nif (event.text && typeof event.text === 'string') {\n  try {\n    event = JSON.parse(event.text);\n  } catch (e) {\n    // If parsing fails, maybe the text IS the JSON but malformed, or just text.\n  }\n}\n\n// Ensure defaults\nevent = {\n  title: event.title || 'New Event',\n  startDate: event.startDate || new Date().toISOString().split('T')[0],\n  startTime: event.startTime || '12:00',\n  endDate: event.endDate || new Date().toISOString().split('T')[0],\n  endTime: event.endTime || '13:00',\n  description: event.description || '',\n  location: event.location || ''\n};\n\n// Helper to format for Google Calendar URL (YYYYMMDDTHHMMSSZ)\nconst formatGCalDate = (date, time) => {\n  return (date + 'T' + time + ':00').replace(/[-:]/g, '');\n};\n\nconst startDateTime = formatGCalDate(event.startDate, event.startTime);\nconst endDateTime = formatGCalDate(event.endDate, event.endTime);\n\nconst gcalLink = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`;\n\n// ICS Content\nconst icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Calendar Extension//EN\nBEGIN:VEVENT\nUID:${Date.now()}@calendar-extension\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z\nDTSTART:${startDateTime}\nDTEND:${endDateTime}\nSUMMARY:${event.title}\nDESCRIPTION:${event.description.replace(/\\n/g, '\\\\n')}\nLOCATION:${event.location}\nEND:VEVENT\nEND:VCALENDAR`;\n\nreturn {\n  json: {\n    ...event,\n    googleCalendarLink: gcalLink,\n    icsContent: icsContent\n  }\n};"
-            },
-            "name": "Generate Links",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                900,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "respondWith": "json",
-                "responseBody": "={{ $json }}",
-                "options": {}
-            },
-            "name": "Respond to Webhook",
-            "type": "n8n-nodes-base.respondToWebhook",
-            "typeVersion": 1,
-            "position": [
-                1120,
-                300
-            ]
+  "name": "Calendar Extension Backend",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calendar-parse",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -24
+      ],
+      "id": "f07db82f-3a88-42e6-a8cc-377f204bddeb",
+      "webhookId": "8577b882-23b6-4e38-8803-e5939f76370b"
+    },
+    {
+      "parameters": {
+        "prompt": "={{ $json.body.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a calendar assistant. Extract the following details from the user's text: Title, Start Date (YYYY-MM-DD), Start Time (HH:MM), End Date (YYYY-MM-DD), End Time (HH:MM), Description, and Location. \\n\\nIf any information is missing, make a reasonable guess based on context (e.g., if no year is specified, assume the next occurrence). If duration is not specified, assume 1 hour.\\n\\nReturn ONLY a valid JSON object with these keys: title, startDate, startTime, endDate, endTime, description, location. Do not wrap in markdown code blocks."
+            }
+          ]
         }
-    ],
-    "connections": {
-        "Webhook": {
-            "main": [
-                [
-                    {
-                        "node": "AI Agent",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
+      },
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -24
+      ],
+      "id": "ce54ad42-6d26-49bd-ab42-5447ce0236a5"
+    },
+    {
+      "parameters": {
+        "jsCode": "let event = $input.first().json;\n\n// Parse if it's a string (common with AI nodes)\nif (typeof event === 'string') {\n  try {\n    event = JSON.parse(event);\n  } catch (e) {\n    // If parsing fails, try to find a text property\n  }\n}\n\nif (event.text && typeof event.text === 'string') {\n  try {\n    event = JSON.parse(event.text);\n  } catch (e) {\n    // If parsing fails, maybe the text IS the JSON but malformed, or just text.\n  }\n}\n\n// Ensure defaults\nevent = {\n  title: event.title || 'New Event',\n  startDate: event.startDate || new Date().toISOString().split('T')[0],\n  startTime: event.startTime || '12:00',\n  endDate: event.endDate || new Date().toISOString().split('T')[0],\n  endTime: event.endTime || '13:00',\n  description: event.description || '',\n  location: event.location || ''\n};\n\n// Helper to format for Google Calendar URL (YYYYMMDDTHHMMSSZ)\nconst formatGCalDate = (date, time) => {\n  return (date + 'T' + time + ':00').replace(/[-:]/g, '');\n};\n\nconst startDateTime = formatGCalDate(event.startDate, event.startTime);\nconst endDateTime = formatGCalDate(event.endDate, event.endTime);\n\nconst gcalLink = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startDateTime}/${endDateTime}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`;\n\n// ICS Content\nconst icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Calendar Extension//EN\nBEGIN:VEVENT\nUID:${Date.now()}@calendar-extension\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z\nDTSTART:${startDateTime}\nDTEND:${endDateTime}\nSUMMARY:${event.title}\nDESCRIPTION:${event.description.replace(/\\n/g, '\\\\n')}\nLOCATION:${event.location}\nEND:VEVENT\nEND:VCALENDAR`;\n\nreturn {\n  json: {\n    ...event,\n    googleCalendarLink: gcalLink,\n    icsContent: icsContent\n  }\n};"
+      },
+      "name": "Generate Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -24
+      ],
+      "id": "44be5702-db9f-4171-a736-fd47ac895491"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -24
+      ],
+      "id": "41c60f78-79ef-49ba-9f58-5ede301d0318",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
         },
-        "AI Agent": {
-            "main": [
-                [
-                    {
-                        "node": "Generate Links",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Generate Links": {
-            "main": [
-                [
-                    {
-                        "node": "Respond to Webhook",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        296,
+        200
+      ],
+      "id": "8d161c5d-1201-4fd2-9f0f-cc87ff7d2203",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "5KycqPDZZ1fHbeSb",
+          "name": "OpenAi account"
         }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const eventObject = {\n  title: $input.first().json.title,\n  startDate: $input.first().json.startDate,\n  startTime: $input.first().json.startTime,\n  endDate: $input.first().json.endDate,\n  endTime: $input.first().json.endTime,\n  description: $input.first().json.description,\n  location: $input.first().json.location,\n  googleCalendarLink: $input.first().json.googleCalendarLink,\n  icsContent: $input.first().json.icsContent\n};\n\nreturn eventObject;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -256
+      ],
+      "id": "731b7888-f575-409a-b512-f44b5aba66ac",
+      "name": "Create Calendar Object"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "9j6MuoeLPTncyinv",
+          "mode": "list",
+          "cachedResultName": "Calendar Object Storage",
+          "cachedResultUrl": "/projects/HrzkEwiAgWqaZ6aP/datatables/9j6MuoeLPTncyinv"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $json.title }}",
+            "startDate": "={{ $json.startDate }}",
+            "endDate": "={{ $json.endDate }}",
+            "startTime": "={{ $json.startTime }}",
+            "description": "={{ $json.description }}",
+            "endTime": "={{ $json.endTime }}",
+            "location": "={{ $json.location }}",
+            "googleCalendarLink": "={{ $json.googleCalendarLink }}",
+            "icsContent": "={{ $json.icsContent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "startDate",
+              "displayName": "startDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "startTime",
+              "displayName": "startTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "endDate",
+              "displayName": "endDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "endTime",
+              "displayName": "endTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "googleCalendarLink",
+              "displayName": "googleCalendarLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "icsContent",
+              "displayName": "icsContent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        -256
+      ],
+      "id": "c80ab649-f84a-455e-8279-6a01f3e062b1",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "9j6MuoeLPTncyinv",
+          "mode": "list",
+          "cachedResultName": "Calendar Object Storage",
+          "cachedResultUrl": "/projects/HrzkEwiAgWqaZ6aP/datatables/9j6MuoeLPTncyinv"
+        },
+        "limit": 10
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        -256
+      ],
+      "id": "ddbfaaf9-9fed-4a07-9641-a0c81fd64d60",
+      "name": "Get first 10 Rows"
+    },
+    {
+      "parameters": {
+        "content": "## Data stored in Table\n### This part crates an Event-Object and inserts it into a persistent  table inside n8n.\n### For this to work, you first have to create a table inside you \"Personal\" tab (top right) with the right columns. After that you just have to select the right table in the table-nodes.",
+        "height": 288,
+        "width": 688
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        736,
+        -400
+      ],
+      "id": "a9045fe1-334b-490f-869e-5df2ecd3c74b",
+      "name": "Sticky Note"
     }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Generate Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Links": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Object": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Get first 10 Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get first 10 Rows": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a3829c28-74d7-42ea-83a0-3e196dc5adbb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "08efb0e2bd41ea2f34a7410dbd536a3f02a2893e9ccde22aec8722082f075fa1"
+  },
+  "id": "tGJYcgNvmQ2lsaKI",
+  "tags": []
 }
