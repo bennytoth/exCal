@@ -1,4 +1,4 @@
 const CONFIG = {
-    // Replace with your actual n8n webhook URL
-    API_URL: "http://localhost:5678/webhook-test/calendar-parse"
+    // goes to Port 80 our proxy
+    API_URL: "http://localhost/webhook/calendar-parse"
 };

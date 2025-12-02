@@ -1,0 +1,111 @@
+{
+    "name": "AI Calendar Processor",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "calendar-ai",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o-mini",
+                "options": {
+                    "temperature": 0.3
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "role": "system",
+                            "content": "You are a smart calendar assistant. \nYour goal is to extract event details from the provided text.\n\nInput:\n- selectedText: The text the user selected.\n- pageTitle: The title of the web page.\n- url: The URL of the web page.\n- currentDate: The current date/time to resolve relative dates (e.g. 'tomorrow').\n\nOutput:\nReturn a JSON object with the following keys:\n- title: A concise title for the event.\n- start: Start time in ISO8601 format.\n- end: End time in ISO8601 format. If not specified, assume 1 hour duration.\n- location: Location of the event (if found).\n- description: A brief description, including the source URL.\n\nIMPORTANT: Return ONLY the JSON object, no markdown formatting."
+                        },
+                        {
+                            "role": "user",
+                            "content": "={{ $json.body }}"
+                        }
+                    ]
+                }
+            },
+            "name": "OpenAI",
+            "type": "n8n-nodes-base.openAi",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "YOUR_OPENAI_CREDENTIAL_ID",
+                    "name": "OpenAI account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const event = items[0].json.message.content ? JSON.parse(items[0].json.message.content) : {};\n\n// Helper to format date for Google (YYYYMMDDThhmmssZ)\nfunction formatGoogleDate(dateStr) {\n  if (!dateStr) return '';\n  const date = new Date(dateStr);\n  return date.toISOString().replace(/-|:|\\.\\d{3}/g, '');\n}\n\nconst title = encodeURIComponent(event.title || 'New Event');\nconst start = formatGoogleDate(event.start);\nconst end = formatGoogleDate(event.end);\nconst details = encodeURIComponent((event.description || '') + '\\n\\nSource: ' + (items[0].json.url || ''));\nconst location = encodeURIComponent(event.location || '');\n\nconst googleLink = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;\n\n// ICS Content\nconst icsContent = [\n  'BEGIN:VCALENDAR',\n  'VERSION:2.0',\n  'BEGIN:VEVENT',\n  `SUMMARY:${event.title || 'New Event'}`,\n  `DTSTART:${start}`,\n  `DTEND:${end}`,\n  `DESCRIPTION:${event.description || ''}`,\n  `LOCATION:${event.location || ''}`,\n  'END:VEVENT',\n  'END:VCALENDAR'\n].join('\\n');\n\nreturn {\n  json: {\n    googleLink,\n    icsContent,\n    eventData: event\n  }\n};"
+            },
+            "name": "Code",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "OpenAI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI": {
+            "main": [
+                [
+                    {
+                        "node": "Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

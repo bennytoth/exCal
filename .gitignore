@@ -7,3 +7,10 @@ local_files/
 
 # Windows Systemdateien
 Thumbs.db
+
+# Database Data
+postgres_data/
+redis_data/
+
+# Logs
+logs/
