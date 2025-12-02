@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meine Events</title>
+  <link rel="stylesheet" href="overview.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📅 Meine Events</h1>
+      <p class="subtitle">Alle gespeicherten Kalendereinträge</p>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading" class="state-view">
+      <div class="spinner"></div>
+      <p>Lade Events...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="state-view hidden">
+      <p id="error-message">Fehler beim Laden der Events.</p>
+      <button id="retry-btn" class="secondary-btn">Erneut versuchen</button>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty" class="state-view hidden">
+      <div class="empty-icon">📭</div>
+      <p>Noch keine Events gespeichert</p>
+      <p class="hint">Markiere Text auf einer Webseite und drücke Strg+Shift+E</p>
+    </div>
+
+    <!-- Events List -->
+    <div id="events-container" class="hidden">
+      <div id="events-list"></div>
+    </div>
+  </div>
+
+  <script src="../utils/config.js"></script>
+  <script src="overview.js"></script>
+</body>
+</html>

@@ -1,60 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Calendar Entry</title>
   <link rel="stylesheet" href="popup.css">
 </head>
-
 <body>
   <div class="container">
     <header>
-      <h1>New Event</h1>
+      <h1>Neues Event</h1>
+      <a href="#" id="view-all-link" class="view-all-link">📅 Alle Events ansehen</a>
     </header>
 
+    <!-- Loading State -->
     <div id="loading" class="state-view">
       <div class="spinner"></div>
-      <p>Analyzing selection...</p>
+      <p>Analysiere Auswahl...</p>
     </div>
 
+    <!-- Error State -->
     <div id="error" class="state-view hidden">
-      <p id="error-message">No text selected.</p>
+      <p id="error-message">Fehler beim Laden.</p>
+      <a href="#" id="view-all-error" class="view-all-link-error">📅 Alle Events ansehen</a>
     </div>
 
+    <!-- Form State -->
     <div id="content" class="state-view hidden">
       <div class="form-group">
-        <label for="title">Title</label>
-        <input type="text" id="title" placeholder="Event Title">
+        <label for="title">Titel</label>
+        <input type="text" id="title" placeholder="Event Titel">
       </div>
 
       <div class="row">
         <div class="form-group">
-          <label for="date">Date</label>
+          <label for="date">Datum</label>
           <input type="date" id="date">
         </div>
         <div class="form-group">
-          <label for="time">Time</label>
+          <label for="time">Zeit</label>
           <input type="time" id="time">
         </div>
       </div>
 
       <div class="form-group">
-        <label for="description">Description</label>
-        <textarea id="description" rows="3" placeholder="Description"></textarea>
+        <label for="description">Beschreibung</label>
+        <textarea id="description" rows="3" placeholder="Beschreibung"></textarea>
       </div>
 
-      <button id="add-btn" class="primary-btn">Add to Calendar</button>
+      <button id="add-btn" class="primary-btn">Zum Kalender hinzufügen</button>
     </div>
 
+    <!-- Success State -->
     <div id="success" class="state-view hidden">
       <div class="icon-success">✓</div>
-      <p>Event Added!</p>
+      <p>Event hinzugefügt!</p>
+      <a href="#" id="view-all-success" class="view-all-link-success">Alle Events ansehen</a>
     </div>
   </div>
   <script src="../utils/config.js"></script>
   <script src="popup.js"></script>
 </body>
-
 </html>

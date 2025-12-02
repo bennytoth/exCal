@@ -11,75 +11,140 @@ document.addEventListener('DOMContentLoaded', async () => {
     const descInput = document.getElementById('description');
     const addBtn = document.getElementById('add-btn');
 
-    // Helper to switch views
+    // "Alle Events ansehen" Links
+    const viewAllLinks = document.querySelectorAll('.view-all-link, .view-all-link-error, .view-all-link-success');
+
     const showView = (view) => {
         [loadingView, contentView, errorView, successView].forEach(v => v.classList.add('hidden'));
         view.classList.remove('hidden');
     };
 
-    try {
-        // Get active tab
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-        if (!tab) {
-            throw new Error("No active tab found.");
-        }
-
-        // Execute script to get selection
-        const result = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => window.getSelection().toString()
-        });
-
-        const selectedText = result[0]?.result;
-
-        if (!selectedText || selectedText.trim() === "") {
-            errorMessage.textContent = "Please select some text on the page first.";
-            showView(errorView);
-            return;
-        }
-
-        // "Fetch" data from n8n
-        console.log("Sending request to:", CONFIG.API_URL);
-        const response = await fetch(CONFIG.API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: selectedText })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-
-        let entry = await response.json();
-        console.log("n8n Response:", entry);
-
-        // n8n often returns an array of items (e.g., [{ title: ... }])
-        if (Array.isArray(entry) && entry.length > 0) {
-            entry = entry[0];
-        }
-
-        // Populate form
+    const populateForm = (entry) => {
         titleInput.value = entry.title || "";
         dateInput.value = entry.startDate || "";
         timeInput.value = entry.startTime || "";
         descInput.value = entry.description || "";
+        
+        addBtn.dataset.gcal = entry.googleCalendarLink || "";
+        addBtn.dataset.ics = entry.icsContent || "";
+    };
 
-        // Store links for button actions
-        addBtn.dataset.gcal = entry.googleCalendarLink;
-        addBtn.dataset.ics = entry.icsContent;
+    const saveFormData = () => {
+        const currentState = {
+            title: titleInput.value,
+            startDate: dateInput.value,
+            startTime: timeInput.value,
+            description: descInput.value,
+            googleCalendarLink: addBtn.dataset.gcal,
+            icsContent: addBtn.dataset.ics
+        };
+        localStorage.setItem('exCal_draft', JSON.stringify(currentState));
+        localStorage.setItem('exCal_time', Date.now().toString());
+    };
 
-        showView(contentView);
+    const loadSavedData = () => {
+        const storedData = localStorage.getItem('exCal_draft');
+        if (storedData) {
+            const entry = JSON.parse(storedData);
+            populateForm(entry);
+            return true;
+        }
+        return false;
+    };
+
+    // Übersichtsseite öffnen - für ALLE Links
+    viewAllLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Link geklickt, öffne Übersichtsseite...');
+            
+            const overviewUrl = chrome.runtime.getURL('overview/overview.html');
+            console.log('URL:', overviewUrl);
+            
+            chrome.tabs.create({ url: overviewUrl }, (tab) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Fehler:', chrome.runtime.lastError);
+                } else {
+                    console.log('Tab erstellt:', tab);
+                }
+            });
+        });
+    });
+
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        
+        if (!tab) {
+            throw new Error("Kein aktiver Tab gefunden.");
+        }
+
+        const result = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+                return {
+                    selectedText: window.getSelection().toString().trim(),
+                    pageTitle: document.title,
+                    url: window.location.href,
+                    pageContent: document.body.innerText.substring(0, 5000)
+                };
+            }
+        });
+
+        const data = result[0]?.result;
+        const hasSelection = data && data.selectedText;
+
+        if (hasSelection) {
+            console.log("Text markiert, sende an n8n...");
+            
+            const response = await fetch(CONFIG.API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    text: data.selectedText,
+                    pageTitle: data.pageTitle,
+                    url: data.url,
+                    pageContent: data.pageContent
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server Fehler: ${response.status}`);
+            }
+
+            let entry = await response.json();
+            
+            if (Array.isArray(entry) && entry.length > 0) {
+                entry = entry[0];
+            }
+
+            console.log("n8n Antwort:", entry);
+            
+            populateForm(entry);
+            saveFormData();
+            showView(contentView);
+
+        } else {
+            console.log("Kein Text markiert, lade gespeicherte Daten...");
+            
+            if (loadSavedData()) {
+                showView(contentView);
+            } else {
+                throw new Error("Kein Text markiert und keine gespeicherten Daten vorhanden.");
+            }
+        }
 
     } catch (err) {
         console.error(err);
-        errorMessage.textContent = "Error: " + err.message;
+        errorMessage.textContent = err.message;
         showView(errorView);
     }
 
-    // Handle "Add" button
+    [titleInput, dateInput, timeInput, descInput].forEach(input => {
+        input.addEventListener('input', saveFormData);
+    });
+
     addBtn.addEventListener('click', () => {
         const gcalLink = addBtn.dataset.gcal;
         const icsContent = addBtn.dataset.ics;
@@ -94,9 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const a = document.createElement('a');
             a.href = url;
             a.download = 'event.ics';
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         showView(successView);

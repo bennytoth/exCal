@@ -5,7 +5,8 @@
   "description": "Create calendar entries from selected text.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "action": {
     "default_popup": "popup/popup.html",
