@@ -1,168 +1,298 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const loadingView = document.getElementById('loading');
-    const contentView = document.getElementById('content');
-    const errorView = document.getElementById('error');
-    const successView = document.getElementById('success');
-    const errorMessage = document.getElementById('error-message');
+// ===============================
+// KONFIGURATION
+// ===============================
 
-    const titleInput = document.getElementById('title');
-    const dateInput = document.getElementById('date');
-    const timeInput = document.getElementById('time');
-    const descInput = document.getElementById('description');
-    const addBtn = document.getElementById('add-btn');
+const OAUTH_START_URL =
+  "https://unrenunciable-illusive-kanesha.ngrok-free.dev/webhook/oauth/google/start";
 
-    // "Alle Events ansehen" Links
-    const viewAllLinks = document.querySelectorAll('.view-all-link, .view-all-link-error, .view-all-link-success');
+const PREPARE_EVENT_URL =
+  "https://unrenunciable-illusive-kanesha.ngrok-free.dev/webhook/calendar/prepare";
 
-    const showView = (view) => {
-        [loadingView, contentView, errorView, successView].forEach(v => v.classList.add('hidden'));
-        view.classList.remove('hidden');
-    };
+const CREATE_EVENT_URL =
+  "https://unrenunciable-illusive-kanesha.ngrok-free.dev/webhook/calendar/create";
 
-    const populateForm = (entry) => {
-        titleInput.value = entry.title || "";
-        dateInput.value = entry.startDate || "";
-        timeInput.value = entry.startTime || "";
-        descInput.value = entry.description || "";
-        
-        addBtn.dataset.gcal = entry.googleCalendarLink || "";
-        addBtn.dataset.ics = entry.icsContent || "";
-    };
+// ===============================
+// UI ELEMENTE
+// ===============================
 
-    const saveFormData = () => {
-        const currentState = {
-            title: titleInput.value,
-            startDate: dateInput.value,
-            startTime: timeInput.value,
-            description: descInput.value,
-            googleCalendarLink: addBtn.dataset.gcal,
-            icsContent: addBtn.dataset.ics
-        };
-        localStorage.setItem('exCal_draft', JSON.stringify(currentState));
-        localStorage.setItem('exCal_time', Date.now().toString());
-    };
+const views = {
+  login: document.getElementById("login"),
+  loading: document.getElementById("loading"),
+  content: document.getElementById("content"),
+  error: document.getElementById("error"),
+  success: document.getElementById("success"),
+};
 
-    const loadSavedData = () => {
-        const storedData = localStorage.getItem('exCal_draft');
-        if (storedData) {
-            const entry = JSON.parse(storedData);
-            populateForm(entry);
-            return true;
-        }
-        return false;
-    };
+const statusText = document.getElementById("status-text");
+const loginBtn = document.getElementById("login-btn");
+const addBtn = document.getElementById("add-btn");
+const logoutBtn = document.getElementById("logout-btn");
 
-    // Übersichtsseite öffnen - für ALLE Links
-    viewAllLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('Link geklickt, öffne Übersichtsseite...');
-            
-            const overviewUrl = chrome.runtime.getURL('overview/overview.html');
-            console.log('URL:', overviewUrl);
-            
-            chrome.tabs.create({ url: overviewUrl }, (tab) => {
-                if (chrome.runtime.lastError) {
-                    console.error('Fehler:', chrome.runtime.lastError);
-                } else {
-                    console.log('Tab erstellt:', tab);
-                }
-            });
-        });
+// ===============================
+// HILFSFUNKTIONEN
+// ===============================
+
+function showView(name) {
+  Object.values(views).forEach((v) => {
+    if (v) v.classList.add("hidden");
+  });
+  if (views[name]) views[name].classList.remove("hidden");
+}
+
+function setStatus(text) {
+  statusText.textContent = text;
+  console.log("[STATUS]", text);
+}
+
+function getStoredUserId() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["userId"], (res) => {
+      resolve(res.userId || null);
     });
+  });
+}
 
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        
-        if (!tab) {
-            throw new Error("Kein aktiver Tab gefunden.");
-        }
+function storeUserId(userId) {
+  return chrome.storage.local.set({ userId });
+}
 
-        const result = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: () => {
-                return {
-                    selectedText: window.getSelection().toString().trim(),
-                    pageTitle: document.title,
-                    url: window.location.href,
-                    pageContent: document.body.innerText.substring(0, 5000)
-                };
-            }
-        });
+function splitDateTime(iso) {
+  return {
+    date: iso.slice(0, 10),
+    time: iso.slice(11, 16),
+  };
+}
 
-        const data = result[0]?.result;
-        const hasSelection = data && data.selectedText;
+// ===============================
+// MARKIERTEN TEXT HOLEN
+// ===============================
 
-        if (hasSelection) {
-            console.log("Text markiert, sende an n8n...");
-            
-            const response = await fetch(CONFIG.API_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    text: data.selectedText,
-                    pageTitle: data.pageTitle,
-                    url: data.url,
-                    pageContent: data.pageContent
-                })
-            });
+async function getSelectedText() {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
 
-            if (!response.ok) {
-                throw new Error(`Server Fehler: ${response.status}`);
-            }
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: () => window.getSelection().toString(),
+  });
 
-            let entry = await response.json();
-            
-            if (Array.isArray(entry) && entry.length > 0) {
-                entry = entry[0];
-            }
+  return result?.trim() || "";
+}
 
-            console.log("n8n Antwort:", entry);
-            
-            populateForm(entry);
-            saveFormData();
-            showView(contentView);
 
-        } else {
-            console.log("Kein Text markiert, lade gespeicherte Daten...");
-            
-            if (loadSavedData()) {
-                showView(contentView);
-            } else {
-                throw new Error("Kein Text markiert und keine gespeicherten Daten vorhanden.");
-            }
-        }
 
-    } catch (err) {
-        console.error(err);
-        errorMessage.textContent = err.message;
-        showView(errorView);
+
+// ===============================
+// EVENT VOM BACKEND VORBEREITEN
+// ===============================
+
+async function prepareEvent(userId) {
+  setStatus("Analysiere markierten Text…");
+  showView("loading");
+
+  const selectedText = await getSelectedText();
+
+  if (!selectedText) {
+    setStatus("Kein Text markiert");
+    showView("error");
+    return;
+  }
+
+  const res = await fetch(PREPARE_EVENT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text: selectedText,
+      userId,
+    }),
+  });
+console.log(res.status);
+  if (res.status === 401) {
+    await chrome.storage.local.remove("userId");
+    setStatus("Bitte erneut anmelden");
+    showView("login");
+    return;
+  } else if (!res.ok) {
+    setStatus("Backend-Fehler beim Analysieren");
+    showView("error");
+    return;
+  }
+
+  const data = await res.json();
+
+  // 🔴 WICHTIG: Backend liefert ARRAY
+  const event = data[0];
+
+
+  
+  if (!event || !event.title || !event.start) {
+    setStatus("Unvollständige Event-Daten");
+    showView("error");
+    return;
+  }
+
+  // Formular befüllen
+  document.getElementById("title").value = event.title;
+  document.getElementById("description").value =
+    event.description || "";
+
+  const { date, time } = splitDateTime(event.start);
+  document.getElementById("date").value = date;
+  document.getElementById("time").value = time;
+
+  setStatus("Event erkannt");
+  showView("content");
+}
+
+// ===============================
+// LOGIN CHECK BEIM ÖFFNEN
+// ===============================
+
+document.addEventListener("DOMContentLoaded", async () => {
+  setStatus("Prüfe Login-Status…");
+
+  const userId = await getStoredUserId();
+
+  if (!userId) {
+    setStatus("Nicht eingeloggt");
+    showView("login");
+  } else {
+    document.getElementById("logout-btn").classList.remove("hidden");
+    await prepareEvent(userId);
+  }
+});
+
+// ===============================
+// OAUTH LOGIN
+// ===============================
+
+loginBtn.addEventListener("click", () => {
+  setStatus("Öffne Google Login…");
+
+  const popup = window.open(
+    OAUTH_START_URL,
+    "oauth",
+    "width=500,height=600"
+  );
+
+  window.addEventListener("message", async (event) => {
+    if (event.data?.type !== "OAUTH_SUCCESS") return;
+
+    const userId = event.data.payload?.userId;
+    if (!userId) {
+      setStatus("Login fehlgeschlagen");
+      showView("error");
+      return;
     }
 
-    [titleInput, dateInput, timeInput, descInput].forEach(input => {
-        input.addEventListener('input', saveFormData);
-    });
+    await storeUserId(userId);
+    await prepareEvent(userId);
 
-    addBtn.addEventListener('click', () => {
-        const gcalLink = addBtn.dataset.gcal;
-        const icsContent = addBtn.dataset.ics;
-
-        if (gcalLink) {
-            window.open(gcalLink, '_blank');
-        }
-
-        if (icsContent) {
-            const blob = new Blob([icsContent], { type: 'text/calendar' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'event.ics';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        showView(successView);
-    });
+    popup?.close();
+  });
 });
+
+// ===============================
+// LOGOUT
+// ===============================
+async function logout() {
+  await chrome.storage.local.remove("userId");
+  document.getElementById("logout-btn").classList.add("hidden");
+  setStatus("Abgemeldet");
+  showView("login");
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await logout();
+  });
+}
+
+
+// ===============================
+// EVENT ERSTELLEN
+// ===============================
+
+addBtn.addEventListener("click", async () => {
+  const userId = await getStoredUserId();
+  if (!userId) {
+    setStatus("Nicht eingeloggt");
+    showView("login");
+    return;
+  }
+
+  const title = document.getElementById("title").value;
+  const date = document.getElementById("date").value;
+  const time = document.getElementById("time").value;
+  const description = document.getElementById("description").value;
+
+  if (!title || !date || !time) {
+    setStatus("Bitte alle Pflichtfelder ausfüllen");
+    showView("error");
+    return;
+  }
+
+  const start = `${date}T${time}:00`;
+
+  setStatus("Erstelle Kalendereintrag…");
+  showView("loading");
+
+  try {
+    const res = await fetch(CREATE_EVENT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        title,
+        start,
+        end: start,
+        description
+      }),
+    });
+
+    const raw = await res.text();
+
+    if (!raw) {
+      setStatus("Keine Antwort vom Backend");
+      showView("error");
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (err) {
+      console.error("Ungültiges JSON:", raw);
+      setStatus("Ungültige Backend-Antwort");
+      showView("error");
+      return;
+    }
+
+    // 
+    const eventStatus = data.success;
+
+    if (eventStatus !== true) {
+      setStatus("Event konnte nicht erstellt werden");
+      showView("error");
+      console.log(data);
+      console.log(eventStatus.success);
+
+      return;
+    }
+
+    // ✅ Erfolgsfall
+    setStatus("Event erfolgreich erstellt");
+    showView("success");
+
+    // Optional: Event-Link öffnen
+    // chrome.tabs.create({ url: eventStatus.eventLink });
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Fehler beim Erstellen des Events");
+    showView("error");
+  }
+});
+

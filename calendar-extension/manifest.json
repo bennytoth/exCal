@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Calendar Entry Creator",
+  "name": "exCal",
   "version": "1.0",
   "description": "Create calendar entries from selected text.",
   "permissions": [
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "storage"
   ],
   "action": {
     "default_popup": "popup/popup.html",
