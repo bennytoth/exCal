@@ -1,0 +1,252 @@
+{
+  "name": "(2) OAuth Callback",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "oauth/google/callback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -464
+      ],
+      "id": "dcf23940-7d94-41bb-be9f-61516e731a91",
+      "name": "Webhook",
+      "webhookId": "10418ef2-144d-4021-bd8f-5ccba7b8658a"
+    },
+    {
+      "parameters": {
+        "jsCode": "function uuidv4() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst store = $getWorkflowStaticData('global');\n\nconst userId = uuidv4();\n\nstore[userId] = {\n  refresh_token: $json.refresh_token,\n  createdAt: new Date().toISOString(),\n};\n\nreturn [\n  {\n    json: {\n      userId,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -464
+      ],
+      "id": "563d58fa-ddda-4613-9455-4329b85d3d5d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oauth2.googleapis.com/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "810707551457-n9uabmarsbmrbt4r4cut6jn8h19e1f7l.apps.googleusercontent.com"
+            },
+            {
+              "name": "client_secret",
+              "value": "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"
+            },
+            {
+              "name": "code",
+              "value": "={{$node[\"Webhook\"].json.query.code}}"
+            },
+            {
+              "name": "redirect_uri",
+              "value": "https://unrenunciable-illusive-kanesha.ngrok-free.dev/webhook/oauth/google/callback"
+            },
+            {
+              "name": "grant_type",
+              "value": "authorization_code"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        -464
+      ],
+      "id": "8d2e3920-2328-40af-b95f-1d41656b6eef",
+      "name": "Toke request"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "eG2ylz4tHdBFdoS0",
+          "mode": "list",
+          "cachedResultName": "OAuth Table",
+          "cachedResultUrl": "/projects/HrzkEwiAgWqaZ6aP/datatables/eG2ylz4tHdBFdoS0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "userId": "={{ $('Code in JavaScript').item.json.userId }}",
+            "refresh_token": "={{ $('Toke request').item.json.refresh_token }}",
+            "calendarId": "={{ $json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "refresh_token",
+              "displayName": "refresh_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "calendarId",
+              "displayName": "calendarId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -464
+      ],
+      "id": "bd8ec1a6-cf7d-4aa7-92ae-3998d6d5ad8c",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html>\n  <head>\n    <meta charset=\"utf-8\" />\n    <title>Login erfolgreich</title>\n  </head>\n  <body>\n    <script>\n      if (window.opener) {\n        window.opener.postMessage(\n          {\n            type: \"OAUTH_SUCCESS\",\n            payload: {\n              userId: \"{{ $json.userId }}\",\n              createdAt: \"{{ $json.createdAt }}\",\n              updatedAt: \"{{ $json.updatedAt }}\"\n            }\n          },\n          \"*\"\n        );\n        window.close();\n      }\n    </script>\n\n    <p>***Login erfolgreich. Du kannst dieses Fenster schließen.</p>\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        -464
+      ],
+      "id": "6e87b36c-9074-40f9-baee-1055fc0a7173",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/calendars",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Toke request').item.json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"summary\": \"exCal\",\n  \"description\": \"Kalender für exCal Browser Extension\",\n  \"timeZone\": \"Europe/Berlin\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        -464
+      ],
+      "id": "5e511d80-5277-4cc6-8737-478e41bed5d1",
+      "name": "create exCal Calender"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Toke request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "create exCal Calender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Toke request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create exCal Calender": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3d0e1081-e594-4928-9258-387fb8dff655",
+  "meta": {
+    "instanceId": "08efb0e2bd41ea2f34a7410dbd536a3f02a2893e9ccde22aec8722082f075fa1"
+  },
+  "id": "F4CNbFoxDe9JHrZQ",
+  "tags": []
+}

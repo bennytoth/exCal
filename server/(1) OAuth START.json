@@ -1,0 +1,86 @@
+{
+  "name": "(1) OAuth START",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "oauth/google/start",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ca28ac1c-728f-4d2d-b446-658893bd45e1",
+      "name": "Webhook",
+      "webhookId": "e18f5de3-1012-4579-9a50-2215cf5603d4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const clientId = \"810707551457-n9uabmarsbmrbt4r4cut6jn8h19e1f7l.apps.googleusercontent.com\";\nconst redirectUri = 'https://unrenunciable-illusive-kanesha.ngrok-free.dev/webhook/oauth/google/callback';\n\nconst query =\n  'client_id=' + encodeURIComponent(clientId) +\n  '&redirect_uri=' + encodeURIComponent(redirectUri) +\n  '&response_type=code' +\n  '&scope=' + encodeURIComponent('https://www.googleapis.com/auth/calendar') +\n  '&access_type=offline' +\n  '&prompt=consent';\n\nreturn [{\n  json: {\n    location: 'https://accounts.google.com/o/oauth2/v2/auth?' + query\n  }\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8dc9281a-6ff0-4388-8b5a-c320885ae3ea",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "respondWith": "redirect",
+        "redirectURL": "={{$json.location}}",
+        "options": {
+          "responseCode": 302
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c4b37a7f-f03d-43a3-9212-42cdd33a27c5",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5f000fac-7013-4cc7-ad70-06c4c78b83d5",
+  "meta": {
+    "instanceId": "08efb0e2bd41ea2f34a7410dbd536a3f02a2893e9ccde22aec8722082f075fa1"
+  },
+  "id": "gN20B72pjYvKFJOV",
+  "tags": []
+}
