@@ -40,11 +40,11 @@
           "parameters": [
             {
               "name": "client_id",
-              "value": "810707551457-n9uabmarsbmrbt4r4cut6jn8h19e1f7l.apps.googleusercontent.com"
+              "value": "YOUR_GOOGLE_CLIENT_ID"
             },
             {
               "name": "client_secret",
-              "value": "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"
+              "value": "YOUR_GOOGLE_CLIENT_SECRET"
             },
             {
               "name": "code",
