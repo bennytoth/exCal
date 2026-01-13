@@ -61,15 +61,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             entry = entry[0];
         }
 
+        console.log("Processed Entry:", entry);
+
+        // Map data from server response (handling both flat and nested structures)
+        const eventData = entry.eventData || entry;
+        const title = eventData.title || "";
+        const description = eventData.description || "";
+        const googleLink = entry.googleLink || entry.googleCalendarLink || "";
+        // icsContent might not be in the new response, defaulting to empty or checking if available
+        const icsContent = entry.icsContent || "";
+
+        // Parse start time for inputs
+        let dateStr = "";
+        let timeStr = "";
+
+        if (eventData.start) {
+            // content format is likely ISO: 2025-11-24T19:30:00
+            const startDateObj = new Date(eventData.start);
+            if (!isNaN(startDateObj)) {
+                // Formatting to YYYY-MM-DD
+                dateStr = startDateObj.toISOString().split('T')[0];
+                // Formatting to HH:MM
+                timeStr = startDateObj.toTimeString().slice(0, 5);
+            } else {
+                // Fallback if raw string usage is needed or format differs
+                console.warn("Could not parse start date:", eventData.start);
+            }
+        }
+        // Fallback to old keys if eventData.start wasn't present
+        else if (eventData.startDate) {
+            dateStr = eventData.startDate;
+            timeStr = eventData.startTime || "";
+        }
+
         // Populate form
-        titleInput.value = entry.title || "";
-        dateInput.value = entry.startDate || "";
-        timeInput.value = entry.startTime || "";
-        descInput.value = entry.description || "";
+        titleInput.value = title;
+        dateInput.value = dateStr;
+        timeInput.value = timeStr;
+        descInput.value = description;
 
         // Store links for button actions
-        addBtn.dataset.gcal = entry.googleCalendarLink;
-        addBtn.dataset.ics = entry.icsContent;
+        addBtn.dataset.gcal = googleLink;
+        addBtn.dataset.ics = icsContent;
 
         showView(contentView);
 

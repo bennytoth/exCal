@@ -1,0 +1,99 @@
+{
+  "name": "AI Calendar Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calendar-ai",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        352,
+        16
+      ],
+      "id": "d34721e5-5166-4368-9879-155dcb7cef70",
+      "webhookId": "3e06cc47-a25c-4f25-894f-ba4b89b2027c"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3
+        },
+        "requestOptions": {}
+      },
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        560,
+        16
+      ],
+      "id": "03b89951-e9b2-49c7-b2c7-4458651304d9",
+      "credentials": {
+        "openAiApi": {
+          "id": "3k16s0CfarsPPSPz",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = items[0].json.message.content ? JSON.parse(items[0].json.message.content) : {};\n\n// Helper to format date for Google (YYYYMMDDThhmmssZ)\nfunction formatGoogleDate(dateStr) {\n  if (!dateStr) return '';\n  const date = new Date(dateStr);\n  return date.toISOString().replace(/-|:|\\.\\d{3}/g, '');\n}\n\nconst title = encodeURIComponent(event.title || 'New Event');\nconst start = formatGoogleDate(event.start);\nconst end = formatGoogleDate(event.end);\nconst details = encodeURIComponent((event.description || '') + '\\n\\nSource: ' + (items[0].json.url || ''));\nconst location = encodeURIComponent(event.location || '');\n\nconst googleLink = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;\n\n// ICS Content\nconst icsContent = [\n  'BEGIN:VCALENDAR',\n  'VERSION:2.0',\n  'BEGIN:VEVENT',\n  `SUMMARY:${event.title || 'New Event'}`,\n  `DTSTART:${start}`,\n  `DTEND:${end}`,\n  `DESCRIPTION:${event.description || ''}`,\n  `LOCATION:${event.location || ''}`,\n  'END:VEVENT',\n  'END:VCALENDAR'\n].join('\\n');\n\nreturn {\n  json: {\n    googleLink,\n    icsContent,\n    eventData: event\n  }\n};"
+      },
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        16
+      ],
+      "id": "9d846d12-cb01-4813-9f90-fae02291273b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "02b73368-1a68-46aa-a4d6-8ce1ca1e316b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1014bab2c86b23016f3f5dc935b24e0e49915cbea5f32d0ff3544bdb53116b3d"
+  },
+  "id": "xJepyVq6DG8eg4Tt",
+  "tags": []
+}

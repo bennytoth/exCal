@@ -1,4 +1,4 @@
 const CONFIG = {
-    // goes to Port 80 our proxy
+    // Via Traefik proxy on port 80
     API_URL: "http://localhost/webhook/calendar-ai"
 };
